@@ -11,8 +11,14 @@
   dom_smoothie 0.18.2 → 0.20.0 with dom_query 0.28.0 → 0.30.0.
 - adblock engine 0.13.5 → 0.13.6 — adds the $to= filter-option
   support newer EasyList/uBO rules use.
-- Bundled tor expert bundle 16.0 → 16.0.1 (16.0.2 ships Android
-  bundles only).
+- Bundled tor expert bundle 16.0 → latest stable (16.0.3 at release
+  time).  dist.torproject.org rotates old versions off the server
+  within weeks of each new stable, so every fetch point — the
+  user-facing fetch-tor.sh, the Windows packaging leg, and the
+  flatpak manifests — now resolves the newest stable X.Y.Z at build
+  time instead of carrying a pin that eventually 404s.  Alpha
+  directories never match; sha256 verification against the published
+  sums is unchanged.
 - Embedded Arti client tree 0.47.0 → 0.48.0 across all ten pins —
   getrandom and sha2 minimums raised to 0.2.17 / 0.11.1 to match.
 - Experimental Servo backend v0.7.0 → v0.8.0; the embed shim was
