@@ -209,6 +209,14 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - name: Pin tor expert bundle to latest stable
+        # dist.torproject.org rotates old versions off the server
+        # within weeks of a new stable release, so the committed
+        # manifest pin eventually 404s — rewrite it to the newest
+        # stable at build time.  The committed pin stays the
+        # reproducible baseline for local flatpak-builder runs.
+        run: python3 BuildProcess/pin-tor-latest.py ${{ matrix.manifest }}
+
       - name: Build flatpak bundle
         # flatpak-builder handles the KDE 6.11 runtime + qtwebengine
         # baseapp + rust SDK extension declared in the manifest; the
@@ -372,9 +380,23 @@ jobs:
           Copy-Item -Recurse src\.qm\locale deploy\locale
           Copy-Item src\useragent\useragents.xml deploy\
           if (Test-Path src\data\extensions) { Copy-Item -Recurse src\data\extensions deploy\extensions }
-          # Tor expert bundle (windows-x86_64) — same artifact+pin as
-          # BuildProcess/fetch-tor.sh, which is sh-only.
-          $tv = "16.0.3"
+          # Tor expert bundle (windows-x86_64) — same artifact as
+          # BuildProcess/fetch-tor.sh, which is sh-only.  Resolve the
+          # latest stable release dynamically: dist.torproject.org
+          # rotates old versions off the server within weeks of a new
+          # stable, so a hardcoded pin 404s (that's what killed the
+          # first v1.4.3 windows legs).  Alpha dirs (16.0a*) don't
+          # match the X.Y.Z pattern.  Integrity is unchanged — the
+          # sha256 check below runs against the sums published
+          # alongside the artifact, exactly like fetch-tor.sh.
+          $index = (Invoke-WebRequest "https://dist.torproject.org/torbrowser/" -UseBasicParsing).Content
+          $tv = [regex]::Matches($index, 'href="(\d+\.\d+\.\d+)/"') |
+                ForEach-Object { $_.Groups[1].Value } |
+                Sort-Object -Unique |
+                Sort-Object { [version]$_ } |
+                Select-Object -Last 1
+          if (-not $tv) { throw "no stable tor browser release found on dist.torproject.org" }
+          Write-Host "resolved latest stable tor browser: $tv"
           $tb = "tor-expert-bundle-windows-x86_64-$tv.tar.gz"
           $base = "https://dist.torproject.org/torbrowser/$tv"
           Invoke-WebRequest "$base/$tb" -OutFile $tb

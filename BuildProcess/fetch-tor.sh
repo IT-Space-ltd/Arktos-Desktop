@@ -12,7 +12,26 @@
 # sha256sums-unsigned-build.txt published on dist.torproject.org.
 set -eu
 
-VERSION=${1:-16.0.3}
+if [ $# -ge 1 ]; then
+    VERSION=$1
+else
+    # dist.torproject.org rotates old versions off the server within
+    # weeks of a new stable release, so a hardcoded default eventually
+    # 404s — resolve the newest X.Y.Z directory dynamically instead
+    # (alpha dirs like 16.0a14 don't match the pattern).  The version
+    # sort is numeric-per-component because macOS ships BSD sort,
+    # which has no -V.
+    VERSION=$(curl -fsSL https://dist.torproject.org/torbrowser/ \
+        | grep -oE 'href="[0-9]+\.[0-9]+\.[0-9]+/"' \
+        | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' \
+        | sort -t. -k1,1n -k2,2n -k3,3n \
+        | tail -1)
+    if [ -z "$VERSION" ]; then
+        echo "no stable tor browser release found on dist.torproject.org" >&2
+        exit 1
+    fi
+    echo "resolved latest stable tor browser: $VERSION"
+fi
 
 case "$(uname -s)" in
     Linux)  os=linux ;;
