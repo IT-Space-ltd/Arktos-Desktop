@@ -1,4 +1,16 @@
 1.4.3 — Dependency refresh
+- URL bar: clicking back into a populated address field no longer
+  wipes the URL on the first Backspace — the SRCH10 one-key clear
+  now only fires at cursor position 0, where a character-wise
+  Backspace dead-stops anyway (its original design case).  Mid-text
+  edits always stay character-wise.
+- rustcore crypto line rolled forward: aes-gcm 0.10.3 → 0.11.1
+  (hybrid-array nonce API ported), argon2 0.5.3 → 0.6.0 (output
+  verified bit-identical against the pinned libargon2 test vector),
+  getrandom 0.2.17 → 0.4.3, zeroize 1.8.1 → 1.9.2.  Readability:
+  dom_smoothie 0.18.2 → 0.20.0 with dom_query 0.28.0 → 0.30.0.
+- adblock engine 0.13.5 → 0.13.6 — adds the $to= filter-option
+  support newer EasyList/uBO rules use.
 - Bundled tor expert bundle 16.0 → 16.0.1 (16.0.2 ships Android
   bundles only).
 - Embedded Arti client tree 0.47.0 → 0.48.0 across all ten pins —
