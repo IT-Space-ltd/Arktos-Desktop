@@ -21,6 +21,22 @@ yanked = "deny"
 ignore = [
     { id = "RUSTSEC-2024-0436", reason = "build-time proc-macro only, via arti tree; no runtime surface" },
     { id = "RUSTSEC-2023-0071", reason = "rsa timing oracle — arti uses rsa for sig verification, not decryption; no upstream fix" },
+    # chrono / humantime: unmaintained, no safe upgrade exists; both
+    # ride the arti 0.48 tree (humantime-serde, tor-config logging).
+    # Re-review at every arti bump.
+    { id = "RUSTSEC-2026-0543", reason = "chrono unmaintained, no fix — transitive via arti tree only" },
+    { id = "RUSTSEC-2026-0542", reason = "humantime unmaintained, no fix — transitive via arti tree only" },
+    # libsqlite3-sys bundled-SQLite page-cache CVE: fixed only in
+    # 0.39.x, which rides rusqlite 0.41 — but arti 0.48 caps rusqlite
+    # at <0.41 (tor-dirmgr), and splitting the graph into two sqlite
+    # copies is the worse evil (one libsqlite3-sys per graph is a
+    # deliberate constraint).  Exposure requires opening a database
+    # plus a crafted sibling -wal written by a less-trusted party —
+    # the stores involved (credential store, arti dir-cache) live in
+    # the browser profile and are written by the browser itself, so
+    # the vector presupposes local profile write access.  Re-review
+    # at every arti bump.
+    { id = "RUSTSEC-2026-0459", reason = "fix requires rusqlite 0.41, arti caps <0.41; stores are self-written profile files, local-only vector" },
 ]
 
 [licenses]
