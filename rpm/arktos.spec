@@ -45,7 +45,7 @@
 %global debug_package %{nil}
 
 Name:           arktos
-Version:        1.4.2
+Version:        1.4.3
 # openSUSE convention: Release 0, the build service increments it.
 Release:        0
 Summary:        Experimental Qt 6 / QtWebEngine web browser
@@ -212,6 +212,25 @@ rm -rf "%{buildroot}"
 %license /usr/share/doc/arktos/LICENSE.GPL3
 
 %changelog
+* Fri Nov 27 2026 Arktos Developers <devin@cognition.ai>
+- Arktos 1.4.3: URL-bar edit fix (one-key clear only at cursor
+  position 0 — mid-text Backspace no longer wipes the URL), rustcore
+  crypto line rolled forward (aes-gcm 0.11.1, argon2 0.6.0
+  bit-identical, getrandom 0.4.3, zeroize 1.9.2), dom_smoothie
+  0.20.0, adblock engine 0.13.6 ($to= support), Arti tree 0.48.0,
+  Servo spike v0.8.0, tor expert bundle resolved to latest stable at
+  package time, url 2.5.9 supply-chain fixes.
+
+* Mon Nov 02 2026 Arktos Developers <devin@cognition.ai>
+- Arktos 1.4.2: sync scheduling (interval + Sync Now, transport
+  stays published between rounds), relay:// pairing invites, auto
+  pair transport (LAN mDNS+QUIC fast path), macOS omnibox stacking
+  fix, pastel-circle chrome icons.
+
+* Fri Oct 30 2026 Arktos Developers <devin@cognition.ai>
+- Arktos 1.4/1.4.1: pastel-circle chrome icons across nav bar, tab
+  strip and URL bar matching the preferences sidebar style.
+
 * Thu Oct 29 2026 Arktos Developers <devin@cognition.ai>
 - Arktos 1.2: full code-audit pass (dead code, dedup, 8 security
   fixes, lifetime fixes, perf fixes, platform remediations) +

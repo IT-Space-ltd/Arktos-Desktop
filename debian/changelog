@@ -1,3 +1,26 @@
+arktos (1.4.3) unstable; urgency=medium
+
+  * URL bar: clicking back into a populated address field no longer
+    wipes the URL on the first Backspace — the one-key clear now
+    only fires at cursor position 0 (its original dead-stop design
+    case); mid-text edits stay character-wise.
+  * rustcore crypto line rolled forward: aes-gcm 0.10.3 → 0.11.1,
+    argon2 0.5.3 → 0.6.0 (output verified bit-identical against the
+    pinned libargon2 test vector), getrandom 0.2.17 → 0.4.3,
+    zeroize 1.8.1 → 1.9.2; dom_smoothie 0.18.2 → 0.20.0.
+  * adblock engine 0.13.5 → 0.13.6 — adds the $to= filter-option
+    support newer EasyList/uBO rules use.
+  * Embedded Arti client tree 0.47.0 → 0.48.0; experimental Servo
+    backend v0.7.0 → v0.8.0.
+  * Bundled tor expert bundle now resolves the latest stable at
+    package/fetch time (16.0.3 at release time) — dist.torproject.org
+    rotates old versions off the server, so static pins eventually
+    404; sha256 verification against the published sums unchanged.
+  * Supply-chain: url 2.5.9 in both rust crates; flatpak vendored
+    crate manifests regenerated.
+
+ -- Janos Szenfner <janos.szenfner@it-space.info>  Fri, 27 Nov 2026 14:50:00 +0100
+
 arktos (1.4.2) unstable; urgency=medium
 
   * Sync scheduling: interval setting (1/5/15/30 min) + Sync Now
