@@ -12,7 +12,7 @@
 # sha256sums-unsigned-build.txt published on dist.torproject.org.
 set -eu
 
-VERSION=${1:-16.0.1}
+VERSION=${1:-16.0.3}
 
 case "$(uname -s)" in
     Linux)  os=linux ;;

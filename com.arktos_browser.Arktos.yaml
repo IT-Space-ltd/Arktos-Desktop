@@ -155,8 +155,8 @@ modules:
       - cp -a data /app/lib/data
     sources:
       - type: archive
-        url: https://dist.torproject.org/torbrowser/16.0.1/tor-expert-bundle-linux-x86_64-16.0.1.tar.gz
-        sha256: 7039cb16060ab22e669852e55774d894b55f25ea8bd0ab7194d3478429a58725
+        url: https://dist.torproject.org/torbrowser/16.0.3/tor-expert-bundle-linux-x86_64-16.0.3.tar.gz
+        sha256: a3fae0d3c263b81ba09e3446bd2af92bc9f8f6edf5bd8f16ab666c6140dc29f7
         # multi-top-dir tarball (tor/ data/ docs/ debug/) — keep the
         # layout, TorManager searches tor/ + ../data relative to the
         # binary.  flatpak-builder defaults to strip-components: 1 which
