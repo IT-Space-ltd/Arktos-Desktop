@@ -187,13 +187,25 @@ void tst_ToolbarSearch::backspaceClearsField()
     QVERIFY(model);
     QVERIFY(model->rowCount() >= 3);
 
-    // Baseline text (setText counts as untouched): one key clears.
+    // Baseline text (setText counts as untouched), cursor homed at 0:
+    // one key clears.  Anywhere else in the field it stays
+    // character-wise — that is the click-back-in edit case.
     search.setText(QLatin1String("whole query"));
+    search.setCursorPosition(0);
     QTest::keyClick(&search, Qt::Key_Backspace);
     QVERIFY(search.text().isEmpty());
 
-    // After typing, backspace deletes single chars and the completer
-    // cannot write a re-highlighted row back into the field.
+    search.setText(QLatin1String("whole query"));
+    search.setCursorPosition(6);
+    QTest::keyClick(&search, Qt::Key_Backspace);
+    QCOMPARE(search.text(), QLatin1String("wholequery"));
+
+    // After typing (into an empty field — a programmatic empty write;
+    // NOT clear(), the ToolbarSearch override would wipe the recent
+    // searches feeding the completer model), backspace deletes single
+    // chars and the completer cannot write a re-highlighted row back
+    // into the field.
+    search.setText(QString());
     QTest::keyClicks(&search, QLatin1String("abc"));
     QTest::keyClick(&search, Qt::Key_Backspace);
     QCOMPARE(search.text(), QLatin1String("ab"));

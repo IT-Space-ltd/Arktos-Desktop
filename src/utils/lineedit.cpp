@@ -283,16 +283,21 @@ void LineEdit::keyPressEvent(QKeyEvent *event)
     // dead-stops, because the location bar homes its cursor to
     // position 0 on navigation where a character-wise Backspace
     // deletes nothing.  The rule only holds until the first real user
-    // edit; afterwards Backspace stays character-wise.  Plain
-    // Backspace (and Shift, which still maps to it) — Ctrl keeps its
-    // delete-word meaning as an ordinary edit.  QLineEdit::clear()
-    // deliberately: a virtual dispatch would land in
-    // ToolbarSearch::clear(), which also drops recent searches and
+    // edit; afterwards Backspace stays character-wise.  It must also
+    // only fire where a character-wise Backspace would be a no-op —
+    // cursorPosition() == 0.  Anywhere to the right of position 0 the
+    // key has real character-wise work to do (this is the click-back-
+    // into-the-url-bar edit case), and wiping the field there reads
+    // as data loss.  Plain Backspace (and Shift, which still maps to
+    // it) — Ctrl keeps its delete-word meaning as an ordinary edit.
+    // QLineEdit::clear() deliberately: a virtual dispatch would land
+    // in ToolbarSearch::clear(), which also drops recent searches and
     // focus.
     const Qt::KeyboardModifiers mods = event->modifiers();
     if (event->key() == Qt::Key_Backspace
         && (mods == Qt::NoModifier || mods == Qt::ShiftModifier)
-        && m_pristine && !text().isEmpty() && !isReadOnly()) {
+        && m_pristine && cursorPosition() == 0
+        && !text().isEmpty() && !isReadOnly()) {
         QLineEdit::clear();
         return;
     }

@@ -77,22 +77,43 @@ void tst_SearchLineEdit::searchlineedit()
 
 // SRCH10: Backspace on the field's baseline text (unchanged since it
 // was last set) clears the whole line — the one-key clear the url and
-// search fields share.  Once the user has edited, Backspace is
-// character-wise all the way to empty.
+// search fields share.  The clear only fires at cursor position 0,
+// where a character-wise Backspace would dead-stop; anywhere else the
+// key stays character-wise even on pristine baseline text, so a click
+// back into a populated field can never wipe it.  Once the user has
+// edited, Backspace is character-wise all the way to empty.
 void tst_SearchLineEdit::backspaceClearsBaseline()
 {
     SubSearchLineEdit edit;
 
+    // Baseline text, cursor homed at 0 (the post-navigation shape):
+    // one key clears.
     edit.setText(QLatin1String("baseline"));
+    edit.setCursorPosition(0);
     QTest::keyClick(&edit, Qt::Key_Backspace);
     QVERIFY(edit.text().isEmpty());
 
-    // After a real user edit backspace stays char-wise.
+    // Regression: baseline text with the caret mid-field — the click-
+    // back-into-the-url-bar case — must edit character-wise, not wipe.
+    edit.setText(QLatin1String("https://example.com/some/path"));
+    edit.setCursorPosition(22);
+    QTest::keyClick(&edit, Qt::Key_Backspace);
+    QCOMPARE(edit.text(), QLatin1String("https://example.com/sme/path"));
+
+    // The same holds at the end of the baseline text.
+    edit.setText(QLatin1String("baseline"));
+    edit.setCursorPosition(edit.text().size());
+    QTest::keyClick(&edit, Qt::Key_Backspace);
+    QCOMPARE(edit.text(), QLatin1String("baselin"));
+
+    // After a real user edit backspace stays char-wise, position 0
+    // included — the one-key clear is spent.
+    edit.clear();
     QTest::keyClicks(&edit, QLatin1String("abc"));
     QTest::keyClick(&edit, Qt::Key_Backspace);
     QCOMPARE(edit.text(), QLatin1String("ab"));
 
-    // Mid-text too — the cursor position doesn't matter.
+    // Mid-text too — the cursor position doesn't matter once edited.
     edit.setCursorPosition(1);
     QTest::keyClick(&edit, Qt::Key_Backspace);
     QCOMPARE(edit.text(), QLatin1String("b"));
@@ -102,8 +123,10 @@ void tst_SearchLineEdit::backspaceClearsBaseline()
     QTest::keyClick(&edit, Qt::Key_Backspace);
     QVERIFY(edit.text().isEmpty());
 
-    // A programmatic setText re-baselines: one-key clear applies again.
+    // A programmatic setText re-baselines: homed at 0 the one-key
+    // clear applies again.
     edit.setText(QLatin1String("again"));
+    edit.setCursorPosition(0);
     QTest::keyClick(&edit, Qt::Key_Backspace);
     QVERIFY(edit.text().isEmpty());
 }
