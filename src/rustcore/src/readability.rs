@@ -292,7 +292,9 @@ fn sanitize(content: &str) -> String {
     for node in doc.select("*").nodes() {
         let mut drop_names: Vec<String> = Vec::new();
         for attr in node.attrs() {
-            let name = attr.name.local.as_ref().to_ascii_lowercase();
+            // Deref to str explicitly — string_cache::Atom has its own
+            // to_ascii_lowercase returning Atom, which shadows str's.
+            let name = (&*attr.name.local).to_ascii_lowercase();
             let value = attr.value.trim().to_ascii_lowercase();
             if name.starts_with("on")
                 || ((name == "href" || name == "src")

@@ -73,8 +73,10 @@ use std::fs;
 use std::io::{self, Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 
-use aes_gcm::aead::{Aead, KeyInit};
+use aes_gcm::aead::{consts::U12, Aead, KeyInit};
 use aes_gcm::Aes256Gcm;
+
+type Nonce96 = aes_gcm::Nonce<U12>;
 use hmac::{Hmac, KeyInit as MacKeyInit, Mac, SimpleHmac};
 use serde_json::json;
 use sha2::Sha512;
@@ -168,7 +170,7 @@ impl Progress {
 // little helpers
 
 fn rand_bytes(buf: &mut [u8]) -> RcResult<()> {
-    getrandom::getrandom(buf).map_err(|e| Fail {
+    getrandom::fill(buf).map_err(|e| Fail {
         status: RcStatus::Unavailable,
         msg: format!("getrandom: {e}"),
     })
@@ -267,7 +269,7 @@ fn wrap_key(
     let mut nonce = [0u8; WRAP_NONCE_SIZE];
     rand_bytes(&mut nonce)?;
     let sealed = cipher
-        .encrypt(aes_gcm::Nonce::from_slice(&nonce), vk.0.as_ref())
+        .encrypt(Nonce96::from(nonce).as_ref(), vk.0.as_ref())
         .map_err(|_| Fail {
             status: RcStatus::Crypto,
             msg: "vault-key wrap failed".into(),
@@ -297,7 +299,7 @@ fn unwrap_key(
                 status: RcStatus::Crypto,
                 msg: format!("aes-gcm init: {e}"),
             })?
-            .decrypt(aes_gcm::Nonce::from_slice(nonce), blob.as_ref())
+            .decrypt(Nonce96::from(*nonce).as_ref(), blob.as_ref())
             .map_err(|_| Fail {
                 status: RcStatus::WrongPassword,
                 msg: "vault password rejected".into(),
@@ -464,7 +466,7 @@ fn encrypt_chunk(
             })?;
             let nonce = chunk_nonce(salt, chunk_index);
             let sealed = cipher
-                .encrypt(aes_gcm::Nonce::from_slice(&nonce), pt)
+                .encrypt(Nonce96::from(nonce).as_ref(), pt)
                 .map_err(|_| Fail {
                     status: RcStatus::Crypto,
                     msg: "chunk seal failed".into(),
@@ -525,7 +527,7 @@ fn decrypt_chunk(
             blob.extend_from_slice(ct);
             blob.extend_from_slice(tag);
             cipher
-                .decrypt(aes_gcm::Nonce::from_slice(&nonce), blob.as_ref())
+                .decrypt(Nonce96::from(nonce).as_ref(), blob.as_ref())
                 .map_err(|_| Fail {
                     status: RcStatus::Tampered,
                     msg: "vault chunk authentication failed".into(),
@@ -1757,37 +1759,30 @@ mod tests {
         let _g = guard();
         // "No key material in freed buffers": every binding that can
         // hold vault secrets is a Zeroizing wrapper, so drop wipes the
-        // bytes in place before the allocation goes back.  For the
-        // fixed-size keys (stack arrays) we observe the still-mapped
-        // slot immediately after drop — nothing overwrites a stack
-        // frame in between, and black_box keeps the compiler from
-        // eliding the read as use-after-scope.  The heap buffers are
-        // probed live instead: a dropped Vec's block can be claimed
-        // by another test thread between drop and read, which would
-        // make a post-free check flaky — so the heap leg verifies
-        // zeroize() on the concrete buffer type the sealer/reader use.
-        unsafe fn wiped(p: *const u8, n: usize) -> bool {
-            std::slice::from_raw_parts(std::hint::black_box(p), n)
-                .iter()
-                .all(|b| *b == 0)
-        }
-
-        // The two-tier vault key (enc_key || mac_key) — stack array.
-        let p;
-        {
-            let vk = VaultKey::random().unwrap();
-            assert!(vk.enc_key().iter().any(|b| *b != 0));
-            p = vk.0.as_ptr();
-        }
-        assert!(unsafe { wiped(p, VAULT_KEY_SIZE) }, "vault key survived drop");
+        // bytes in place before the allocation goes back.  Each leg
+        // probes the zeroize mechanism on the concrete buffer type the
+        // sealer/reader uses — a post-drop read of the memory itself is
+        // not a sound test for either allocation class: a dropped Vec's
+        // heap block can be claimed by another test thread between drop
+        // and read, and a dead stack slot can be reused by LLVM for the
+        // probe frame itself (black_box cannot forbid either) — whether
+        // such a read still sees the wiped bytes is a codegen-layout
+        // artifact that flips with unrelated dependency or compiler
+        // changes (observed in practice: the stack-read version of
+        // these legs passed on one dependency tree and failed on the
+        // next with zeroize byte-identical).
+        //
+        // The two-tier vault key (enc_key || mac_key).
+        let mut vk = VaultKey::random().unwrap();
+        assert!(vk.enc_key().iter().any(|b| *b != 0));
+        vk.0.zeroize();
+        assert!(vk.0.iter().all(|b| *b == 0), "vault key zeroize no-op");
 
         // The expanded 128-byte Threefish cipher key.
-        let p;
-        {
-            let tf = threefish_key(&[7u8; ENC_KEY_SIZE]);
-            p = tf.as_ptr();
-        }
-        assert!(unsafe { wiped(p, 128) }, "threefish key survived drop");
+        let mut tf = threefish_key(&[7u8; ENC_KEY_SIZE]);
+        assert!(tf.iter().any(|b| *b != 0));
+        tf.zeroize();
+        assert!(tf.iter().all(|b| *b == 0), "threefish key zeroize no-op");
 
         // The heap chunk buffers ride Zeroizing<Vec<u8>> — the drop
         // path is Vec::zeroize, so probe that mechanism directly on

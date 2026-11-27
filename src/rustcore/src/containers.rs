@@ -371,7 +371,7 @@ pub fn namespace_json(n: &Namespace) -> serde_json::Value {
 /// 8-4-4-4-12 lowercase hex.
 fn new_id() -> RcResult<String> {
     let mut b = [0u8; 16];
-    getrandom::getrandom(&mut b).map_err(|e| Fail {
+    getrandom::fill(&mut b).map_err(|e| Fail {
         status: RcStatus::Unavailable,
         msg: format!("getrandom: {e}"),
     })?;

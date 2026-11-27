@@ -171,7 +171,7 @@ mod ws {
         origin: &str,
     ) -> Result<(), Fail> {
         let mut key_raw = [0u8; 16];
-        getrandom::getrandom(&mut key_raw).map_err(|e| Fail {
+        getrandom::fill(&mut key_raw).map_err(|e| Fail {
             status: RcStatus::Unavailable,
             msg: format!("rng: {e}"),
         })?;
@@ -235,7 +235,7 @@ mod ws {
             frame.extend_from_slice(&n.to_be_bytes());
         }
         let mut mask = [0u8; 4];
-        getrandom::getrandom(&mut mask).unwrap_or_default();
+        getrandom::fill(&mut mask).unwrap_or_default();
         frame.extend_from_slice(&mask);
         for (i, b) in payload.iter().enumerate() {
             frame.push(b ^ mask[i % 4]);
@@ -249,7 +249,7 @@ mod ws {
         frame.push(0x8Au8);
         frame.push(0x80 | payload.len() as u8);
         let mut mask = [0u8; 4];
-        getrandom::getrandom(&mut mask).unwrap_or_default();
+        getrandom::fill(&mut mask).unwrap_or_default();
         frame.extend_from_slice(&mask);
         for (i, b) in payload.iter().enumerate() {
             frame.push(b ^ mask[i % 4]);

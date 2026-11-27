@@ -24,7 +24,7 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, MutexGuard, RwLock};
 
-use aes_gcm::aead::{consts::U12, generic_array::GenericArray, Aead, KeyInit};
+use aes_gcm::aead::{consts::U12, Aead, KeyInit};
 use aes_gcm::Aes256Gcm;
 use argon2::{Algorithm, Argon2, Params, Version};
 use zeroize::Zeroizing;
@@ -227,7 +227,7 @@ impl Store {
 
     fn random<const N: usize>() -> RcResult<[u8; N]> {
         let mut b = [0u8; N];
-        getrandom::getrandom(&mut b).map_err(|e| Fail {
+        getrandom::fill(&mut b).map_err(|e| Fail {
             status: RcStatus::Unavailable,
             msg: format!("getrandom: {e}"),
         })?;
@@ -450,7 +450,7 @@ pub(crate) fn derive_key(pass: &[u8], m: u32, t: u32, p: u32, salt: &[u8]) -> Rc
     Ok(Zeroizing::new(out))
 }
 
-type Nonce96 = GenericArray<u8, U12>;
+type Nonce96 = aes_gcm::Nonce<U12>;
 
 /// "ARSEC1" | nonce[12] | tag[16] | ciphertext under `key`.
 pub fn seal_with_key(key: &[u8; KEY_SIZE], plain: &[u8]) -> RcResult<Vec<u8>> {
@@ -459,14 +459,14 @@ pub fn seal_with_key(key: &[u8; KEY_SIZE], plain: &[u8]) -> RcResult<Vec<u8>> {
         msg: format!("aes-gcm init: {e}"),
     })?;
     let mut nonce = [0u8; NONCE_SIZE];
-    getrandom::getrandom(&mut nonce).map_err(|e| Fail {
+    getrandom::fill(&mut nonce).map_err(|e| Fail {
         status: RcStatus::Unavailable,
         msg: format!("getrandom: {e}"),
     })?;
     // RustCrypto emits ciphertext||tag; the ARSEC1 framing keeps the
     // tag ahead of the ciphertext for C++-written blob compatibility.
     let sealed = cipher
-        .encrypt(Nonce96::from_slice(&nonce), plain)
+        .encrypt(Nonce96::from(nonce).as_ref(), plain)
         .map_err(|_| Fail {
             status: RcStatus::Crypto,
             msg: "aes-gcm seal failed".into(),
@@ -486,7 +486,10 @@ pub fn open_with_key(key: &[u8; KEY_SIZE], blob: &[u8]) -> RcResult<Vec<u8>> {
     if blob.len() < HEADER_SIZE || &blob[..6] != SEAL_MAGIC {
         return fail(RcStatus::Corrupt, "not a sealed blob");
     }
-    let nonce = Nonce96::from_slice(&blob[6..6 + NONCE_SIZE]);
+    let nonce = <&Nonce96>::try_from(&blob[6..6 + NONCE_SIZE]).map_err(|_| Fail {
+        status: RcStatus::Corrupt,
+        msg: "sealed blob nonce truncated".into(),
+    })?;
     let tag = &blob[6 + NONCE_SIZE..HEADER_SIZE];
     let ct = &blob[HEADER_SIZE..];
     let mut ct_tag = Vec::with_capacity(ct.len() + TAG_SIZE);

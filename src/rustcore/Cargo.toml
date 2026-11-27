@@ -38,10 +38,10 @@ synclan = ["dep:quinn", "dep:socket2", "dep:tokio", "dep:futures"]
 # Crypto crates are exact-pinned (RCORE01/SEC21 policy): a dep bump is
 # a deliberate, reviewed `cargo update` + audit, never a silent
 # re-resolve.  Cargo.lock is committed for the transitive tree.
-aes-gcm = "=0.10.3"
-argon2 = "=0.5.3"
-zeroize = "=1.8.1"
-getrandom = "=0.2.17"
+aes-gcm = "=0.11.1"
+argon2 = "=0.6.0"
+zeroize = "=1.9.2"
+getrandom = "=0.4.3"
 serde_json = "1.0.151"
 # Parser crate is exact-pinned too (SEC19): untrusted remote XML goes
 # through it, so a dep bump is a reviewed `cargo update`, never a
@@ -91,8 +91,8 @@ hmac = "=0.13.0"
 threefish = { version = "=0.6.0", default-features = false }
 skein = { version = "=0.2.0", default-features = false }
 tar = "=0.4.46"
-dom_smoothie = "=0.18.2"
-dom_query = "=0.28.0"
+dom_smoothie = "=0.20.0"
+dom_query = "=0.30.0"
 # QR encoding (QRC01): Nayuki's qrcodegen-rs — the same code lineage
 # (and MIT license) as the vendored C++ qrcodegen.cpp it replaces, so
 # the module matrix is bit-identical.  Exact-pinned like the rest of
